@@ -1,64 +1,74 @@
-# Flutter/Dart/Pub related
-**/doc/api/
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+.gradle/
+
+# IntelliJ / Android Studio
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Visual Studio Code
+.vscode/
+# If you want to share launch configs, verify this one. 
+# Usually for personal projects, ignore the whole folder.
+.vscode/settings.json
+.vscode/tasks.json
+.vscode/launch.json
+.vscode/extensions.json
+
+# Flutter/Dart Core
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
-.fvm/
 .packages
+build/
 .pub-cache/
 .pub/
-build/
-coverage/
-lib/generated_plugin_registrant.dart
-# For library packages, don’t commit the pubspec.lock file.
-# Regenerating the pubspec.lock file lets you test your package against the latest compatible versions of its dependencies.
-# See https://dart.dev/guides/libraries/private-files#pubspeclock
-#pubspec.lock
 
-# Android related
-**/android/**/gradle-wrapper.jar
-**/android/.gradle
-**/android/captures/
-**/android/gradlew
-**/android/gradlew.bat
-**/android/key.properties
-**/android/local.properties
-**/android/**/GeneratedPluginRegistrant.java
+# Android Secrets & Build
+android/local.properties
+android/key.properties
+android/.gradle
+android/.cxx
+android/app/build
+android/app/.cxx
 
-# iOS/XCode related
-**/ios/**/*.mode1v3
-**/ios/**/*.mode2v3
-**/ios/**/*.moved-aside
-**/ios/**/*.pbxuser
-**/ios/**/*.perspectivev3
-**/ios/**/*sync/
-**/ios/**/.sconsign.dblite
-**/ios/**/.tags*
-**/ios/**/.vagrant/
-**/ios/**/DerivedData/
-**/ios/**/Icon?
-**/ios/**/Pods/
-**/ios/**/.symlinks/
-**/ios/**/profile
-**/ios/**/xcuserdata
-**/ios/.generated/
-**/ios/Flutter/.last_build_id
-**/ios/Flutter/App.framework
-**/ios/Flutter/Flutter.framework
-**/ios/Flutter/Flutter.podspec
-**/ios/Flutter/Generated.xcconfig
-**/ios/Flutter/app.flx
-**/ios/Flutter/app.zip
-**/ios/Flutter/flutter_assets/
-**/ios/Flutter/flutter_export_environment.sh
-**/ios/ServiceDefinitions.json
-**/ios/Runner/GeneratedPluginRegistrant.*
+**/*.keystore
+**/*.jks
 
-# Exceptions to above rules.
-!**/ios/**/default.mode1v3
-!**/ios/**/default.mode2v3
-!**/ios/**/default.pbxuser
-!**/ios/**/default.perspectivev3
-!/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
+# iOS / macOS Build
+ios/Flutter/App.framework
+ios/Flutter/Flutter.framework
+ios/Flutter/Generated.xcconfig
+ios/Flutter/app.flx
+ios/Flutter/gen_snapshot
+ios/ServiceDefinitions.json
+ios/Runner/GeneratedPluginRegistrant.*
+ios/Pods/
+ios/.symlinks/
+ios/Profile/
 
-# End of https://mrkandreev.name/snippets/gitignore-generator/#Flutter
+# macOS Desktop
+macos/Flutter/ephemeral/
+
+# Windows Desktop
+windows/flutter/ephemeral/
+
+# Linux Desktop
+linux/flutter/ephemeral/
+
+# Web
+web/icons/Icon-192.png
+web/icons/Icon-512.png
+web/icons/Icon-maskable-192.png
+web/icons/Icon-maskable-512.png

@@ -32,11 +32,11 @@ class MainActivity: FlutterActivity() {
                         errorCode = 315
                     }
                 }
-                // if (SignatureVerifier.signatureCheck(context)) {
-                    //    if (errorCode == 0 || errorCode >= 400) {
-                    //     errorCode = 316
-                    // }
-                // }
+                if (SignatureVerifier.signatureCheck(context)) {
+                       if (errorCode == 0 || errorCode >= 400) {
+                        errorCode = 316
+                    }
+                }
                 if (errorCode == 0) {
                     if (SettingsCheck.adbEnabled(context)){
                         errorCode = 407
