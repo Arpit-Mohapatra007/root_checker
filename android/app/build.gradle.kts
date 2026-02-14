@@ -18,7 +18,9 @@ android {
     namespace = "com.example.root_checker"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
-
+    buildFeatures{
+        buildConfig = true
+    }
     externalNativeBuild {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
@@ -44,6 +46,8 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        val secretKey = localProperties.getProperty("xor.key")
+        buildConfigField("String", "XOR_KEY", "\"$secretKey\"")
     }
 
     signingConfigs {

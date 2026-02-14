@@ -3,6 +3,7 @@
 #define HEADERS_H
 bool check_su(const char *path);
 bool check_su_stat(const char *path);
+bool check_su_syscall(const char *path);
 bool mount_point_discovery();
 bool mount_namespaces_check();
 bool env_variable_check(const char *target);

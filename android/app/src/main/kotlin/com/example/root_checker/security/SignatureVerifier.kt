@@ -7,7 +7,7 @@ import android.util.Base64
 
 object SignatureVerifier{
     private const val h = "ZSxQKh8IMgRpLBR4LC0QHxZ/AFtxC1llDgt8W2VVVlVkLx0hWGUTFSsHAEgDe3ltDxNcQGhhU3Z0QycuJUNgVA=="
-    private const val k = "UIaH-nWg_IuANHs&sKckG9mS=2MmQm24UMyGhPwtJb2x0KH^9!n\$PQ7DL!BH@zTbzjdEH*q!!fk7@kklQwdarnnCW-HazNn+yzlR3FsmfkXiHvnj=uxGB2_er1lVDrFz"
+    private const val k = BuildConfig.XOR_KEY
     private fun decrypt(): String{
         return try {
             val d = Base64.decode(h,Base64.NO_WRAP)

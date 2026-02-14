@@ -10,6 +10,6 @@ bool time_check(long threshold) {
     syscall(__NR_clock_gettime, CLOCK_MONOTONIC, &start);
     getpid();
     syscall(__NR_clock_gettime, CLOCK_MONOTONIC, &end);
-    long duration = (end.tv_sec - start.tv_sec) * 1000000000L + (end.tv_nsec - start.tv_nsec);
+    long long duration = (end.tv_sec - start.tv_sec) * 1000000000L + (end.tv_nsec - start.tv_nsec);
     return duration > threshold;
 }
