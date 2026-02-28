@@ -4,35 +4,40 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import java.security.KeyStore
 import java.security.KeyPairGenerator
-import java.util.Base64
-
+import android.util.Base64
+import java.util.UUID
 object KeyAttestation {
     @JvmStatic
-    fun checkKeyAttestation(challenge: String): Boolean {
-        val keyAlias = "attestation_key"
-        try {
-            val kpg = KeyPairGenerator.getInstance(
-                KeyProperties.KEY_ALGORITHM_EC, "AndroidKeyStore"
-            )
+    fun signResult(cxxResult: String): String
+{
+    val keyAlias = UUID.randomUUID().toString()
 
-            val spec = KeyGenParameterSpec.Builder(
-                keyAlias,
-                KeyProperties.PURPOSE_SIGN)
-                .setDigests(KeyProperties.DIGEST_SHA256)
-                .setAttestationChallenge(challenge.toByteArray())
-                .build()
+    try{
+        val kpg = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_EC, "AndroidKeyStore")
 
-            kpg.initialize(spec)
-            kpg.generateKeyPair()
+        val spec = KeyGenParameterSpec.Builder(
+            keyAlias,
+            KeyProperties.PURPOSE_SIGN)
+            .setDigests(KeyProperties.DIGEST_SHA256)
+            .setAttestationChallenge(cxxResult.toByteArray())
+            .build()
 
-            val keyStore = KeyStore.getInstance("AndroidKeyStore")
-            keyStore.load(null)
+        kpg.initialize(spec)
+        kpg.generateKeyPair()
 
-            val certificates = keyStore.getCertificateChain(keyAlias)
+        val keyStore = KeyStore.getInstance("AndroidKeyStore")
+        keyStore.load(null)
 
-            return !(certificates != null && certificates.isNotEmpty())
-        } catch (e: Exception) {
-            return false
+        val certificates = keyStore.getCertificateChain(keyAlias)
+
+        if(certificates != null && certificates.isNotEmpty()){
+            val attestation = certificates[0].encoded
+            keyStore.deleteEntry(keyAlias)
+            return Base64.encodeToString(attestation, Base64.NO_WRAP)
         }
+        return "ATTESTATION_FAILED"
+    }catch (e: Exception){
+        return "ATTESTATION_FAILED"
     }
+}
 }

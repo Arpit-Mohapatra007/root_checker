@@ -1,6 +1,7 @@
 #include <jni.h>
 #include <string>
-#include <unordered_map>
+#include <vector>
+#include <utility>
 #include <initializer_list>
 #include "headers.h"
 #include "xorstr.h"
@@ -8,58 +9,93 @@
 using namespace std;
 
 #define JNI_METHOD __attribute__((visibility("default"))) extern "C" JNIEXPORT 
+constexpr unsigned long long ROOT_FOUND = 0xF680B49BE8BF3D92;
+constexpr unsigned long long ROOT_NOT_FOUND = 0xCF28F0E61252166C;
 
 template <typename... Args>
-int scan_files_detailed(Args... args) {
-    int result = 0;
-    auto check_file_raw = [&](const char* path) -> int {
-        if (check_su(path)) return 101;
-        if (check_su_stat(path)) return 102;
-        if (check_su_syscall(path)) return 101;
-        if (nuclear_test(path)) return 103;
-        return 0;
+void scan_files_detailed(unsigned long long &state, int &detected_error ,Args... args) {
+    auto check_file_raw = [&](const char* path){
+        int error_code = 0;
+        if (check_su(path)) error_code = 101;
+        if (check_su_stat(path)) error_code = 102;
+        if (check_su_syscall(path)) error_code = 101;
+        if (nuclear_test(path)) error_code = 103;
+        if (error_code != 0) {
+            if (detected_error == 0) detected_error = error_code;
+            state = (state^ROOT_FOUND) << 1;
+        } else {
+            state = (state^ROOT_NOT_FOUND) >> 1;
+        }
     };
-    (void)initializer_list<int>{ (result = (result ? result : check_file_raw(args)), 0)... };
-    return result;
+    (void)initializer_list<int>{(check_file_raw(args), 0)... };
 }
 
 template <typename... Args>
-int scan_processes_detailed(Args... args) {
-    int result = 0;
-    auto check_proc_raw = [&](const char* target) -> int {
-        if (process_detection(target)) return 201;
-        if (thread_check(target)) return 202;
-        return 0;
+void scan_processes_detailed(unsigned long long& state, int& detected_error, Args... args) {
+    auto check_proc_raw = [&](const char* target) {
+        int local_err = 0;
+        if (process_detection(target)) local_err = 201;
+        else if (thread_check(target)) local_err = 202;
+
+        if (local_err != 0) {
+            if (detected_error == 0) detected_error = local_err;
+            state = (state ^ ROOT_FOUND) << 1;
+        } else {
+            state = (state ^ ROOT_NOT_FOUND) >> 1;
+        }
     };
-    (void)initializer_list<int>{ (result = (result ? result : check_proc_raw(args)), 0)... };
-    return result;
+    (void)initializer_list<int>{ (check_proc_raw(args), 0)... };
 }
 
 template <typename... Args>
-int scan_env_vars(Args... args) {
-    int result = 0;
-    (void)initializer_list<int>{ (result = (result ? result : (env_variable_check(args) ? 203 : 0)), 0)... };
-    return result;
+void scan_env_vars(unsigned long long& state, int& detected_error, Args... args) {
+    auto check_env_raw = [&](const char* target) {
+        if (env_variable_check(target)) {
+            if (detected_error == 0) detected_error = 203;
+            state = (state ^ ROOT_FOUND) << 1;
+        } else {
+            state = (state ^ ROOT_NOT_FOUND) >> 1;
+        }
+    };
+    (void)initializer_list<int>{ (check_env_raw(args), 0)... };
 }
 
 template <typename... Args>
-int scan_dirty_paths(Args... args) {
-    int result = 0;
-    (void)initializer_list<int>{ (result = (result ? result : (path_check(args) ? 104 : 0)), 0)... };
-    return result;
+void scan_dirty_paths(unsigned long long& state, int& detected_error, Args... args) {
+    auto check_path_raw = [&](const char* target) {
+        if (path_check(target)) {
+            if (detected_error == 0) detected_error = 104;
+            state = (state ^ ROOT_FOUND) << 1;
+        } else {
+            state = (state ^ ROOT_NOT_FOUND) >> 1;
+        }
+    };
+    (void)initializer_list<int>{ (check_path_raw(args), 0)... };
 }
 
 template <typename... Args>
-int scan_file_descriptors(Args... args) {
-    int result = 0;
-    (void)initializer_list<int>{ (result = (result ? result : (fd_check(args) ? 205 : 0)), 0)... };
-    return result;
+void scan_file_descriptors(unsigned long long& state, int& detected_error, Args... args) {
+    auto check_fd_raw = [&](const char* target) {
+        if (fd_check(target)) {
+            if (detected_error == 0) detected_error = 205;
+            state = (state ^ ROOT_FOUND) << 1;
+        } else {
+            state = (state ^ ROOT_NOT_FOUND) >> 1;
+        }
+    };
+    (void)initializer_list<int>{ (check_fd_raw(args), 0)... };
 }
 
-JNI_METHOD jint JNICALL
-Java_com_example_root_1checker_MainActivity_nativeCheck(JNIEnv *env, jobject thisz){
+JNI_METHOD jstring JNICALL
+Java_com_example_root_1checker_MainActivity_nativeCheck(JNIEnv *env, jobject thisz, jstring nonce_from_java) {
+    const char *nonce_str = env->GetStringUTFChars(nonce_from_java,0);
+    unsigned long long state = strtoull(nonce_str, nullptr, 16);
+    env->ReleaseStringUTFChars(nonce_from_java, nonce_str);
 
-    int file_result = scan_files_detailed(
+    int detected_error = 0;
+
+    scan_files_detailed(
+        state, detected_error,
         XOR("/sbin/su"), XOR("/system/bin/su"), XOR("/system/xbin/su"),
         XOR("/data/local/xbin/su"), XOR("/data/local/bin/su"), XOR("/system/sd/xbin/su"),
         XOR("/system/bin/failsafe/su"), XOR("/data/local/su"), XOR("/su/bin/su"),
@@ -71,39 +107,39 @@ Java_com_example_root_1checker_MainActivity_nativeCheck(JNIEnv *env, jobject thi
         XOR("/data/adb/magisk.apk"), XOR("/data/adb/magisk.zip"),
         XOR("/data/adb/modules"), XOR("/data/adb/magisk/modules")
     );
-    if (file_result != 0) return file_result;
-
-    int dirty_result = scan_dirty_paths(
+    scan_dirty_paths(
+        state, detected_error,
         XOR("/sbin"), XOR("/system/bin/.ext"), XOR("/system/sd/xbin"),
         XOR("/data/local/xbin"), XOR("/su/bin")
     );
-    if (dirty_result != 0) return dirty_result;
-
-    int proc_result = scan_processes_detailed(
+    scan_processes_detailed(
+        state, detected_error,
         XOR("magisk"), XOR("magiskd"), XOR("su"), XOR("daemonsu"),
         XOR("super_user"), XOR("supersu"), XOR("superuser"),
         XOR("frida"), XOR("frida-server"), XOR("xposed"), XOR("substrate")
     );
-    if (proc_result != 0) return proc_result;
-
-    int env_result = scan_env_vars(
+    scan_env_vars(
+        state, detected_error,
         XOR("MAGISK_VER_CODE"), XOR("MAGISK_VER_NAME"), 
         XOR("LD_PRELOAD"), XOR("XPOSED_FRAMEWORK")
     );
-    if (env_result != 0) return env_result;
-
-    int fd_result = scan_file_descriptors(
+    scan_file_descriptors(
+        state, detected_error,
         XOR("/dev/socket/magisk"), XOR("/dev/magisk"),
         XOR("/system/framework/XposedBridge.jar"), XOR("/sys/fs/selinux/enforce")
     );
-    if (fd_result != 0) return fd_result;
 
     int ports[]={ 27042, 27043 };
     for (int port : ports) {
-        if(port_scan(port)) return 204;
+        if(port_scan(port)){
+            if (detected_error == 0) detected_error = 204;
+            state = (state ^ ROOT_FOUND) << 1;
+        } else {
+            state = (state ^ ROOT_NOT_FOUND) >> 1;
+        }
     }
 
-    unordered_map<int,string> target_properties={
+    vector<pair<int,string>> target_properties={
         {6, XOR("1")}, {8, XOR("test-keys")}, {1, XOR("sdk")}, {1, XOR("google_sdk")},
         {1, XOR("sdk_x86")}, {1, XOR("Emulator")}, {5, XOR("goldfish")},
         {5, XOR("ranchu")}, {9, XOR("android")}
@@ -111,31 +147,44 @@ Java_com_example_root_1checker_MainActivity_nativeCheck(JNIEnv *env, jobject thi
 
     for (const auto& prop : target_properties) {
         if(emulator_check_properties((int)prop.first, prop.second.c_str())){
-            return 401;
+            if (detected_error == 0) detected_error = 401;
+            state = (state ^ ROOT_FOUND) << 1;
+        } else {
+            state = (state ^ ROOT_NOT_FOUND) >> 1;
         }
     }
 
-    if(mount_namespaces_check()) return 301;
-    if(seal_inspection()) return 302;
-    if(dynamic_instrumentation_enabled()) return 303;
-    if(selinux_auditing_enabled()) return 304;
-    if(kernelsu_active_check()) return 305;
-    if(kernelsu_passive_check()) return 306;
-    if(mount_point_discovery()) return 307;
-    if(got_check()) return 308;
+    auto run_check = [&](bool is_dirty, int error_code) {
+        if (is_dirty) {
+            if (detected_error == 0) detected_error = error_code;
+            state = (state ^ ROOT_FOUND) << 1;
+        } else {
+            state = (state ^ ROOT_NOT_FOUND) >> 1;
+        }
+    };
+
+    run_check(mount_namespaces_check(), 301);
+    run_check(seal_inspection(), 302);
+    run_check(dynamic_instrumentation_enabled(), 303);
+    run_check(selinux_auditing_enabled(), 304);
+    run_check(kernelsu_active_check(), 305);
+    run_check(kernelsu_passive_check(), 306);
+    run_check(mount_point_discovery(), 307);
+    run_check(got_check(), 308);
 
     int threshold = calibrate_timing_threshold(1000);
-    if(time_check(threshold)) return 310;
-    if(time_side_channel_vulnerability_detection_test()) return 311;
+    run_check(time_check(threshold), 310);
+    run_check(time_side_channel_vulnerability_detection_test(), 311);
+    run_check(smoke_test(), 312);
+    run_check(integrity_check("Java_com_example_root_1checker_MainActivity_nativeCheck"), 313);
 
-    if(smoke_test()) return 312;
-    if(integrity_check("Java_com_example_root_1checker_MainActivity_nativeCheck")) return 313;
+    run_check(emulator_check_battery_voltage(), 402);
+    run_check(emulator_check_cpu_temperature(), 403);
+    run_check(bootloader_check(), 404);
+    run_check(debuggable_check(), 405);
+    run_check(anti_debugger_check(), 406);
 
-    if(emulator_check_battery_voltage()) return 402;
-    if(emulator_check_cpu_temperature()) return 403;
-    if(bootloader_check()) return 404;
-    if(debuggable_check()) return 405;
-    if(anti_debugger_check()) return 406;
-
-    return 0;
+    char result[256];
+    snprintf(result, sizeof(result), "%llx|%d" , state, detected_error);
+    return env->NewStringUTF(result);
 }

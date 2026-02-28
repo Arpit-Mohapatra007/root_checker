@@ -14,24 +14,32 @@ class MainActivity: FlutterActivity() {
         }
     }
 
-    private external fun nativeCheck(): Int
+    private external fun nativeCheck(nonce: String): String
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             if (call.method == "checkRoot") {
-                var errorCode = nativeCheck()
+                val serverNonce = call.argument<String>("nonce") ?: ""
+                if(serverNonce.isEmpty()) {
+                    result.error("NO_NONCE", "Server challenge is missing", null)
+                    return@setMethodCallHandler
+                }
+                val rawResult = nativeCheck(serverNonce)
+                val parts = rawResult.split("|")
+                if (parts.size != 2) {
+                    result.error("PAYLOAD_ERROR", "Unexpected response format", null)
+                    return@setMethodCallHandler
+                }
+                val hash = parts[0]
+                var errorCode = parts[1].toIntOrNull()?:999
                 if (!SystemIntegrity.systemIntegrityCheck(context, "com.example.root_checker")){
                     if (errorCode == 0 || errorCode >= 400) {
                         errorCode = 314
                     }
                 }
-                if (KeyAttestation.checkKeyAttestation("root_check_challenge")) {
-                     if (errorCode == 0 || errorCode >= 400) {
-                        errorCode = 315
-                    }
-                }
+                
                 if (SignatureVerifier.signatureCheck(context)) {
                        if (errorCode == 0 || errorCode >= 400) {
                         errorCode = 316
@@ -48,7 +56,10 @@ class MainActivity: FlutterActivity() {
                         errorCode = 409
                     }
                 }
-                result.success(errorCode)
+                val finalPayload = "$hash|$errorCode"
+                val hardwareSignature = KeyAttestation.signResult(finalPayload)
+                val finalResult = mapOf("result" to finalPayload, "signature" to hardwareSignature)
+                result.success(finalResult)
             } else {
                 result.notImplemented()
             }

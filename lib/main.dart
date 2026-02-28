@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:uuid/uuid.dart';
 void main() {
   runApp(const RootCheckerApp());
 }
@@ -47,8 +49,8 @@ class _SecurityDashboardState extends State<SecurityDashboard> {
       return;
     }
 
-    if (code >= 400) {
-      String reason = "Unknown Dev Setting";
+    if (code >= 400 && code <= 499) {
+      String reason = "Unknown Dev Setting (Code: $code)";
       if (code == 401) reason = "Emulator Environment Detected";
       if (code == 402) reason = "Abnormal Battery Levels (Emulator)";
       if (code == 403) reason = "Abnormal CPU Temps (Emulator)";
@@ -91,6 +93,8 @@ class _SecurityDashboardState extends State<SecurityDashboard> {
     if (code == 315) reason = "Key Attestation Failed"; 
     if (code == 316) reason = "App Signature Mismatch";
 
+    if (code == 999) reason = "Hooking Detected";
+
     _updateUI("Root Detected", reason, Colors.redAccent, Icons.warning_amber_rounded);
   }
 
@@ -107,18 +111,51 @@ class _SecurityDashboardState extends State<SecurityDashboard> {
   Future<void> _runSecurityScan() async {
     setState(() {
       _isScanning = true;
-      _statusMessage = "Scanning...";
-      _detailedReason = "";
+      _statusMessage = "Authenticating...";
+      _detailedReason = "Contacting Aegis Security Server";
       _statusColor = Colors.blueAccent;
     });
 
-    await Future.delayed(const Duration(milliseconds: 600));
-
+    const String serverUrl = "https://root-checker-backend.onrender.com";
+    final String deviceID = const Uuid().v4();
     try {
-      final int result = await platform.invokeMethod('checkRoot');
-      _interpretResult(result);
-    } on PlatformException catch (e) {
-      _updateUI("Scan Failed", e.message ?? "Unknown Error", Colors.grey, Icons.error_outline);
+      final challengeResponse = await http.get(Uri.parse("$serverUrl/api/get-challenge?deviceID=$deviceID"));
+      if (challengeResponse.statusCode != 200) throw Exception("Server rejected connection");
+
+      final String serverNonce = jsonDecode(challengeResponse.body)['challenge'];
+
+      setState(() {
+        _detailedReason = "Challenge Received. Verifying Device...";
+      });
+
+      final Map<dynamic,dynamic> nativeResult = await platform.invokeMethod('checkRoot',{
+        "nonce": serverNonce
+      });
+
+      setState(() {
+        _detailedReason = "Verifying Cryptographic Signature...";
+      });
+
+      final verifyResponse = await http.post(
+        Uri.parse("$serverUrl/api/verify-scan"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "deviceID": deviceID,
+          "scanResult": nativeResult['result'],
+          "signature": nativeResult['signature']
+        }),
+      );
+
+      if (verifyResponse.statusCode == 200 || verifyResponse.statusCode == 403){
+          final finalVerdict = jsonDecode(verifyResponse.body);
+          final dynamic rawCode = finalVerdict['code'];
+          final int serverCode = (rawCode is int)? rawCode : 999;
+          _interpretResult(serverCode);
+      } else {
+        throw Exception("Server Error: ${verifyResponse.statusCode}");
+      }
+    } catch (e) {
+      _updateUI("Network Error", e.toString(), Colors.grey, Icons.cloud_off);
     }
   }
 
