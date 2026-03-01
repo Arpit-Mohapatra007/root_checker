@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
+import 'dart:io';
+import 'package:http/io_client.dart';
+
 void main() {
   runApp(const RootCheckerApp());
 }
@@ -118,8 +120,27 @@ class _SecurityDashboardState extends State<SecurityDashboard> {
 
     const String serverUrl = "https://root-checker-backend.onrender.com";
     final String deviceID = const Uuid().v4();
+
+    String? blockedIssuer;
     try {
-      final challengeResponse = await http.get(Uri.parse("$serverUrl/api/get-challenge?deviceID=$deviceID"));
+      SecurityContext context = SecurityContext(withTrustedRoots: false);
+     
+      HttpClient httpClient = HttpClient(context: context);
+      
+      httpClient.badCertificateCallback = (X509Certificate certificate, String host, int port){
+        final issuer = certificate.issuer.toLowerCase();
+
+        if (issuer.contains("let's encrypt") || issuer.contains("google trust services") || issuer.contains("cloudflare") || issuer.contains("zerossl") || issuer.contains("digicert") || issuer.contains("sectigo") || issuer.contains("comodoca") || issuer.contains("globalsign") || issuer.contains("amazon") || issuer.contains("entrust") || issuer.contains("geotrust") || issuer.contains("thawte") || issuer.contains("buypass") || issuer.contains("ssl.com") || issuer.contains("certum") || issuer.contains("quovadis") || issuer.contains("trustwave") || issuer.contains("network solutions") || issuer.contains("godaddy") || issuer.contains("digi-cert") || issuer.contains("r3") || issuer.contains("isrg root x1") || issuer.contains("gts root r1")){
+          return true;
+        }
+
+        blockedIssuer = certificate.issuer;
+        return false;
+      };
+      
+      final IOClient secureClient = IOClient(httpClient);
+
+      final challengeResponse = await secureClient.get(Uri.parse("$serverUrl/api/get-challenge?deviceID=$deviceID"));
       if (challengeResponse.statusCode != 200) throw Exception("Server rejected connection");
 
       final String serverNonce = jsonDecode(challengeResponse.body)['challenge'];
@@ -136,7 +157,7 @@ class _SecurityDashboardState extends State<SecurityDashboard> {
         _detailedReason = "Verifying Cryptographic Signature...";
       });
 
-      final verifyResponse = await http.post(
+      final verifyResponse = await secureClient.post(
         Uri.parse("$serverUrl/api/verify-scan"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
@@ -155,7 +176,12 @@ class _SecurityDashboardState extends State<SecurityDashboard> {
         throw Exception("Server Error: ${verifyResponse.statusCode}");
       }
     } catch (e) {
-      _updateUI("Network Error", e.toString(), Colors.grey, Icons.cloud_off);
+
+      String errorMsg = e.toString();
+      if (blockedIssuer != null){
+        errorMsg = "MITM BLOCKED ! Untrusted Certificate Intercepted:\n $blockedIssuer";
+      }
+      _updateUI("Error", errorMsg, Colors.grey, Icons.cloud_off);
     }
   }
 

@@ -8,9 +8,24 @@
 
 using namespace std;
 
+uint64_t derive_constants(const string& nonce, uint64_t index){
+    uint64_t hash = 14695981039346656037ULL;
+    uint64_t prime = 1099511628211ULL;
+
+    hash ^= (uint64_t)index;
+    hash *= prime;
+
+    for (char c:nonce){
+        hash ^= (uint8_t)c;
+        hash *= prime;
+    }
+
+    return hash;
+}
+
 #define JNI_METHOD __attribute__((visibility("default"))) extern "C" JNIEXPORT 
-constexpr unsigned long long ROOT_FOUND = 0xF680B49BE8BF3D92;
-constexpr unsigned long long ROOT_NOT_FOUND = 0xCF28F0E61252166C;
+uint64_t ROOT_FOUND = 0;
+uint64_t ROOT_NOT_FOUND = 0;
 
 template <typename... Args>
 void scan_files_detailed(unsigned long long &state, int &detected_error ,Args... args) {
@@ -88,10 +103,17 @@ void scan_file_descriptors(unsigned long long& state, int& detected_error, Args.
 
 JNI_METHOD jstring JNICALL
 Java_com_example_root_1checker_MainActivity_nativeCheck(JNIEnv *env, jobject thisz, jstring nonce_from_java) {
-    const char *nonce_str = env->GetStringUTFChars(nonce_from_java,0);
-    unsigned long long state = strtoull(nonce_str, nullptr, 16);
-    env->ReleaseStringUTFChars(nonce_from_java, nonce_str);
+    const char *nonce_cstr = env->GetStringUTFChars(nonce_from_java,0);
+    string nonce_str(nonce_cstr);
 
+    env->ReleaseStringUTFChars(nonce_from_java, nonce_cstr);
+
+
+    ROOT_FOUND = derive_constants(nonce_str, 1759639709ULL);
+    ROOT_NOT_FOUND = derive_constants(nonce_str, 3726535711ULL);
+    
+    unsigned long long state = stoull(nonce_str, nullptr, 16);
+    
     int detected_error = 0;
 
     scan_files_detailed(
