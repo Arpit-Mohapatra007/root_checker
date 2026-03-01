@@ -129,12 +129,17 @@ class _SecurityDashboardState extends State<SecurityDashboard> {
       
       httpClient.badCertificateCallback = (X509Certificate certificate, String host, int port){
         final issuer = certificate.issuer.toLowerCase();
+        final subject = certificate.subject.toLowerCase();
 
-        if (issuer.contains("let's encrypt") || issuer.contains("google trust services") || issuer.contains("cloudflare") || issuer.contains("zerossl") || issuer.contains("digicert") || issuer.contains("sectigo") || issuer.contains("comodoca") || issuer.contains("globalsign") || issuer.contains("amazon") || issuer.contains("entrust") || issuer.contains("geotrust") || issuer.contains("thawte") || issuer.contains("buypass") || issuer.contains("ssl.com") || issuer.contains("certum") || issuer.contains("quovadis") || issuer.contains("trustwave") || issuer.contains("network solutions") || issuer.contains("godaddy") || issuer.contains("digi-cert") || issuer.contains("r3") || issuer.contains("isrg root x1") || issuer.contains("gts root r1")){
+        bool isRenderDomain = subject.contains("onrender.com") || subject.contains("cloudflare") || subject.contains("gts");
+
+        bool isTrustedCloud = issuer.contains("let's encrypt") || issuer.contains("cloudflare") || issuer.contains("google trust services") || issuer.contains("digicert") || issuer.contains("sectigo") || issuer.contains("comodoca") || issuer.contains("globalsign") || issuer.contains("amazon") || issuer.contains("entrust") || issuer.contains("buypass") || issuer.contains("ssl.com") || issuer.contains("geotrust") || issuer.contains("certum") || issuer.contains("quovadis") || issuer.contains("trustwave") || issuer.contains("tencent") || issuer.contains("cisco") || issuer.contains("symantec") || issuer.contains("zerossl");
+
+        if (isRenderDomain && isTrustedCloud){
           return true;
         }
 
-        blockedIssuer = certificate.issuer;
+        blockedIssuer = "Subject: $subject\nIssuer: $issuer";
         return false;
       };
       
