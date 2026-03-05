@@ -37,10 +37,17 @@ struct XorString{
     }
 };
 
-#define XOR(str) ([]() {\
+#define XOR(str) ([]() -> const char* { \
     constexpr size_t N = sizeof(str); \
-    static constexpr auto xor_str = XorString<char, N, __LINE__ + 0x55>(str); \
-    return xor_str.decrypt();\
-}().get())
+    static auto xor_str = XorString<char, N, __LINE__ + 0x55>(str); \
+    static char buffer[N]; \
+    static bool decrypted = false; \
+    if (!decrypted) { \
+        auto wrapper = xor_str.decrypt(); \
+        for(size_t i=0; i<N; i++) buffer[i] = wrapper.buffer[i]; \
+        decrypted = true; \
+    } \
+    return buffer; \
+}())
 
 #endif

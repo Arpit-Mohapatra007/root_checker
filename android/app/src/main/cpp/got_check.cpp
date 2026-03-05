@@ -1,10 +1,13 @@
 #include <link.h>
 #include <dlfcn.h>
 #include <string.h>
-bool got_check(){
+#include "headers.h"
+#include "xorstr.h"
+
+void got_check(unsigned long long &state, int &detected_error){
     Dl_info info;
     if (dladdr((void*)&got_check, &info) == 0) {
-        return true;  
+        FLAG_THREAT(308)
     }
     uintptr_t base_address = (uintptr_t)info.dli_fbase;
     ElfW(Ehdr) *ehdr = (ElfW(Ehdr) *)base_address;
@@ -19,7 +22,7 @@ bool got_check(){
     }
 
     if (dyn == nullptr) {
-        return true;  
+        FLAG_THREAT(308)
     }
 
     uintptr_t * got_start = nullptr;
@@ -31,7 +34,7 @@ bool got_check(){
     }
 
     if (got_start == nullptr) {
-        return true;  
+        FLAG_THREAT(308)
     }
 
     for (int i = 3; i<8; i++){
@@ -42,21 +45,21 @@ bool got_check(){
         Dl_info got_info;
         if (dladdr((void*) func_addr, &got_info) != 0){
             if(got_info.dli_fname == nullptr){
-                return true; 
+                FLAG_THREAT(308)
             }
 
-            if(strstr(got_info.dli_fname,"/data/") != nullptr){
-                if(strstr(got_info.dli_fname, "/dalvik-cache/") != nullptr || 
-                    strstr(got_info.dli_fname,"/data/app") != nullptr ||
-                    strstr(got_info.dli_fname, "/data/apex/") != nullptr ||
-                    strstr(got_info.dli_fname, "com.google.android.gms") != nullptr ||
-                    strstr(got_info.dli_fname, "libhoudini") != nullptr ||
-                    strstr(got_info.dli_fname, "libndk_translation") != nullptr) {
+            if(strstr(got_info.dli_fname, XOR("/data/")) != nullptr){
+                if(strstr(got_info.dli_fname, XOR("/dalvik-cache/")) != nullptr || 
+                    strstr(got_info.dli_fname, XOR("/data/app")) != nullptr ||
+                    strstr(got_info.dli_fname, XOR("/data/apex/")) != nullptr ||
+                    strstr(got_info.dli_fname, XOR("com.google.android.gms")) != nullptr ||
+                    strstr(got_info.dli_fname, XOR("libhoudini")) != nullptr ||
+                    strstr(got_info.dli_fname, XOR("libndk_translation")) != nullptr) {
                         continue; 
                 }
-                return true;
+                FLAG_THREAT(308)
             }
         }
     }
-    return false;
+    FLAG_SAFE()
 }

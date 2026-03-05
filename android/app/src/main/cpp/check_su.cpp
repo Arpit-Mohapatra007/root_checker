@@ -1,30 +1,26 @@
 #include <unistd.h>
-#include <errno.h>
-bool check_su(const char *path){
-    int result =  access(path,F_OK);
-    if (result == 0){
-        return true;
-    }
-    return false;
-}
-
 #include <sys/stat.h>
+#include <fcntl.h>
+#include "headers.h"
+#include "inline_syscall.h"
 
-bool check_su_stat(const char *path){
-    struct stat stats;
-    int result = stat(path,&stats);
-    if(result == 0 && stats.st_uid == 0){
-        return true;
+void check_su(unsigned long long &state, int &detected_error, const char *path){
+    int result = (int)cmd(__NR_faccessat, AT_FDCWD, (long)path, F_OK, 0);
+    if (result == 0){
+        FLAG_THREAT(101)
     }
-    return false;
+    FLAG_SAFE()
 }
 
-#include "syscall_helper.h"
-
-bool check_su_syscall(const char *path){
-    int result = sys_access(path,F_OK);
-    if (result == 0){
-        return true;
+void check_su_stat(unsigned long long &state, int &detected_error, const char *path){
+    struct stat stats;
+    #ifdef __NR_newfstatat
+    int result = (int) cmd(__NR_newfstatat, AT_FDCWD, (long)path, (long)&stats, 0);
+    #else
+    int result = (int) cmd(__NR_fstatat64, AT_FDCWD, (long)path, (long)&stats, 0);
+    #endif
+    if(result == 0 && stats.st_uid == 0){
+        FLAG_THREAT(102)
     }
-    return false;
+    FLAG_SAFE()
 }

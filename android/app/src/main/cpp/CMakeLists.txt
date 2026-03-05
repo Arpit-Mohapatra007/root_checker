@@ -8,6 +8,7 @@ add_library(
     root_checker
     SHARED
     native-lib.cpp
+    memory_integrity.cpp
     check_su.cpp
     anti_debugger_check.cpp
     bootloader_check.cpp

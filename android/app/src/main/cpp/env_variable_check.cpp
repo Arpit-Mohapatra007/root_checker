@@ -1,9 +1,10 @@
 #include <stdlib.h>
 #include <string.h>
+#include "headers.h"
 
-bool env_variable_check(const char *target){
+void env_variable_check(unsigned long long &state, int &detected_error, const char *target){
     if (getenv(target) != NULL) {
-        return true;
+        FLAG_THREAT(203)
     }
-    return false;
+    FLAG_SAFE()
 }

@@ -1,39 +1,52 @@
 #include <stdio.h>
 #include <string.h>
-#include <dirent.h>
-#include <unistd.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <errno.h>
+#include "headers.h"
+#include "xorstr.h"
+#include "inline_syscall.h"
 
-bool kernelsu_active_check(){
-    DIR *dir = opendir("/dev");
-    if (dir == NULL) {
-        return false;
+struct linux_dirent64 {
+    uint64_t d_ino;
+    int64_t d_off;
+    unsigned short d_reclen;
+    unsigned char d_type;
+    char d_name[];
+};
+
+void kernelsu_active_check(unsigned long long &state, int &detected_error){
+    int fd = (int)cmd(__NR_openat, AT_FDCWD, (long)XOR("/dev"), O_RDONLY|O_DIRECTORY|O_CLOEXEC, 0);
+    if (fd < 0) {
+        FLAG_SAFE()
     }
-    struct dirent *entry;
-    while((entry = readdir(dir)) != nullptr){
-        if (entry->d_name[0] == '.') {
-            continue;
+    char buffer[4096];
+    char path[256];
+    while (true){
+        long dir_read = (long)cmd(__NR_getdents64, fd, (long)buffer, sizeof(buffer));
+        if (dir_read < 0) {
+            cmd(__NR_close, fd);
+            FLAG_SAFE()
         }
-        if (strstr(entry->d_name, "watchdog") != nullptr){
-            continue;
-        }
-        char path[1024];
-        snprintf(path, sizeof(path), "/dev/%s", entry->d_name);
-        int fd = open(path, O_RDONLY|O_NONBLOCK);
-        if (fd < 0) {
-            continue;
-        }
-        int result = ioctl(fd, 0xDEADBEEF, nullptr);
-        close(fd);
-        if (result == 0) {
-            closedir(dir);
-            return true;
+        if (dir_read == 0) break;
+        long buffer_pos = 0;
+        while (buffer_pos < dir_read) {
+            struct linux_dirent64 *entry = (struct linux_dirent64 *) (buffer + buffer_pos);
+            if (entry->d_name[0] != '.' && strstr(entry->d_name, XOR("watchdog")) == nullptr) {
+                snprintf(path, sizeof(path), "/dev/%s", entry->d_name);
+                int fp = (int)cmd(__NR_openat, AT_FDCWD, (long)path, O_RDONLY|O_NONBLOCK|O_CLOEXEC, 0);
+                if (fp >= 0) {
+                    long result = (long)cmd(__NR_ioctl, fp, 0xDEADBEEF, 0);
+                    cmd(__NR_close, fp);
+                    if (result == 0) {
+                        cmd(__NR_close, fd);
+                        FLAG_THREAT(305)
+                    }
+                }
+            }
+            buffer_pos += entry->d_reclen;
         }
     }
-    closedir(dir);
-    return false;
+    cmd(__NR_close, fd);
+    FLAG_SAFE()
 }

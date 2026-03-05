@@ -1,22 +1,27 @@
-#include <stdio.h>
-#include <string.h>
+#include <sys/syscall.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include "xorstr.h"
 #include <errno.h>
+#include "headers.h"
+#include "inline_syscall.h"
 
-bool selinux_auditing_enabled(){
-    FILE *fp = fopen("/sys/fs/selinux/enforce", "r");
-    if (fp == nullptr) {
-        if (errno == EACCES){
-            return false;
+void selinux_auditing_enabled(unsigned long long &state, int &detected_error){
+    int fd = (int)cmd(__NR_openat, AT_FDCWD, (long)XOR("/sys/fs/selinux/enforce"), O_RDONLY | O_CLOEXEC, 0);
+    if (fd < 0) {
+        if (fd == -EACCES || fd == -ENOENT){
+            FLAG_SAFE()
         }
-        return true;
+        FLAG_THREAT(304)
     }
-    char ch;
-    if (fscanf(fp, "%c",&ch)>0){
-        if (ch == '0'){
-            fclose(fp);
-            return true;
-        }
+    char buffer[4];
+    ssize_t bytes = (ssize_t)cmd(__NR_read, fd, (long)buffer, sizeof(buffer) - 1);
+    cmd(__NR_close, fd);
+    if (bytes <= 0) {
+        FLAG_THREAT(304)
     }
-    fclose(fp);
-    return false;    
+    if (buffer[0] == '0') {
+        FLAG_THREAT(304)
+    }
+    FLAG_SAFE()
 }

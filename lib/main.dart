@@ -53,49 +53,49 @@ class _SecurityDashboardState extends State<SecurityDashboard> {
 
     if (code >= 400 && code <= 499) {
       String reason = "Unknown Dev Setting (Code: $code)";
-      if (code == 401) reason = "Emulator Environment Detected";
-      if (code == 402) reason = "Abnormal Battery Levels (Emulator)";
-      if (code == 403) reason = "Abnormal CPU Temps (Emulator)";
-      if (code == 404) reason = "Bootloader is Unlocked";
-      if (code == 405) reason = "App is Debuggable";
-      if (code == 406) reason = "Active Debugger Attached";
-      if (code == 407) reason = "USB Debugging is Enabled";
-      if (code == 408) reason = "Accessibility Services Enabled";
-      if (code == 409) reason = "Developer Options Enabled";
+      switch (code) {
+        case 401: reason = "Emulator Detected"; break;
+        case 402: reason = "Emulator Detected"; break;
+        case 403: reason = "Emulator Detected"; break;
+        case 404: reason = "Bootloader is Unlocked"; break;
+        case 405: reason = "USB Debugging is Enabled"; break;
+        case 406: reason = "Active Debugger Attached"; break;
+        case 407: reason = "ADB Interface Active"; break;
+        case 408: reason = "Suspicious Accessibility Service Active"; break;
+        case 409: reason = "Developer Options Enabled"; break;
+      }
       _updateUI("Developer Mode", reason, Colors.orangeAccent, Icons.developer_mode);
       return;
     }
 
-    String reason = "Security Violation ($code)";
-
-    if (code == 101) reason = "SU Binary Found";
-    if (code == 102) reason = "SU Binary Permissions Abnormal";
-    if (code == 103) reason = "SU File Detected (Syscall)";
-    if (code == 104) reason = "Suspicious System PATH";
-
-    if (code == 201) reason = "Root Management Process Found";
-    if (code == 202) reason = "Suspicious Thread Injection";
-    if (code == 203) reason = "Magisk Environment Variable";
-    if (code == 204) reason = "Frida Server Port Open";
-    if (code == 205) reason = "Suspicious File Descriptor";
-
-    if (code == 301) reason = "Mount Namespace Tampering";
-    if (code == 302) reason = "System Seal Broken";
-    if (code == 303) reason = "Dynamic Instrumentation (Frida)";
-    if (code == 304) reason = "SELinux is Disabled";
-    if (code == 305) reason = "KernelSU Active Detected";
-    if (code == 306) reason = "KernelSU Passive Detected";
-    if (code == 307) reason = "Root Mount Point Found";
-    if (code == 308) reason = "Global Offset Table Hooked";
-    if (code == 310) reason = "Execution Timing Anomaly";
-    if (code == 311) reason = "Timing Side-Channel Attack";
-    if (code == 312) reason = "Root Smoke Test Failed";
-    if (code == 313) reason = "App Integrity Check Failed";
-    if (code == 314) reason = "System Integrity Check Failed"; 
-    if (code == 315) reason = "Key Attestation Failed"; 
-    if (code == 316) reason = "App Signature Mismatch";
-
-    if (code == 999) reason = "Hooking Detected";
+    String reason = "Unknown Security Threat (Code: $code)";
+    switch (code) {
+      case 101: reason = "Root Binary Detected"; break;
+      case 102: reason = "Root Binary Detected"; break;
+      case 103: reason = "Dangerous File Opened"; break;
+      case 104: reason = "Suspicious PATH Environment Variable"; break;
+      case 201: reason = "Malicious Process Running"; break;
+      case 202: reason = "Malicious Thread Injected into App"; break;
+      case 203: reason = "Dangerous Environment Variable Hook"; break;
+      case 204: reason = "Suspicious Local Port Open"; break;
+      case 205: reason = "Suspicious File Descriptor Linked"; break;
+      case 301: reason = "Mount Namespace Tampering"; break;
+      case 302: reason = "Custom ROM / Test-Keys Build Detected"; break;
+      case 303: reason = "Dynamic Instrumentation"; break;
+      case 304: reason = "SELinux is Permissive or Disabled"; break;
+      case 305: reason = "KernelSU Detected"; break;
+      case 306: reason = "KernelSU Detected"; break;
+      case 307: reason = "System Partition Remounted as R/W"; break;
+      case 308: reason = "GOT Table Hooking Detected"; break;
+      case 310: reason = "Syscall Hooking Detected"; break;
+      case 311: reason = "Side-Channel Hooking Detected"; break;
+      case 312: reason = "Root Shell Execution Successful"; break;
+      case 313: reason = "Memory Tampering"; break;
+      case 314: reason = "App Repackaged / Modified"; break;
+      case 315: reason = "Hardware Attestation Failed / OS Tampered"; break;
+      case 316: reason = "APK Signature Mismatch"; break;
+      case 999: reason = "Hooking / Payload Tampering Detected"; break;
+    }
 
     _updateUI("Root Detected", reason, Colors.redAccent, Icons.warning_amber_rounded);
   }
@@ -124,7 +124,7 @@ class _SecurityDashboardState extends State<SecurityDashboard> {
     String? blockedIssuer;
     try {
       SecurityContext context = SecurityContext(withTrustedRoots: false);
-     
+      
       HttpClient httpClient = HttpClient(context: context);
       
       httpClient.badCertificateCallback = (X509Certificate certificate, String host, int port){
@@ -146,7 +146,8 @@ class _SecurityDashboardState extends State<SecurityDashboard> {
       final IOClient secureClient = IOClient(httpClient);
 
       final challengeResponse = await secureClient.get(Uri.parse("$serverUrl/api/get-challenge?deviceID=$deviceID"));
-      if (challengeResponse.statusCode != 200) throw Exception("Server rejected connection");
+      
+      if (challengeResponse.statusCode != 200) throw Exception("Network Error");
 
       final String serverNonce = jsonDecode(challengeResponse.body)['challenge'];
 
@@ -178,15 +179,14 @@ class _SecurityDashboardState extends State<SecurityDashboard> {
           final int serverCode = (rawCode is int)? rawCode : 999;
           _interpretResult(serverCode);
       } else {
-        throw Exception("Server Error: ${verifyResponse.statusCode}");
+        throw Exception("Network Error"); 
       }
     } catch (e) {
-
-      String errorMsg = e.toString();
+      String errorMsg = "Secure connection to the Aegis verification network timed out. Please check your internet connection or try again.";
       if (blockedIssuer != null){
         errorMsg = "MITM BLOCKED ! Untrusted Certificate Intercepted:\n $blockedIssuer";
       }
-      _updateUI("Error", errorMsg, Colors.grey, Icons.cloud_off);
+      _updateUI("Connection Error", errorMsg, Colors.grey, Icons.cloud_off);
     }
   }
 
@@ -214,7 +214,7 @@ class _SecurityDashboardState extends State<SecurityDashboard> {
             const SizedBox(height: 40),
             Text(_statusMessage, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: _statusColor, letterSpacing: 1.2)),
             const SizedBox(height: 10),
-            Text(_detailedReason, style: TextStyle(fontSize: 16, color: Colors.grey[400])),
+            Text(_detailedReason, style: TextStyle(fontSize: 16, color: Colors.grey[400]), textAlign: TextAlign.center,),
           ],
         ),
       ),

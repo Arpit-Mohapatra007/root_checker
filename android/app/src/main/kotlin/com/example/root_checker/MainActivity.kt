@@ -14,7 +14,10 @@ class MainActivity: FlutterActivity() {
         }
     }
 
-    private external fun nativeCheck(nonce: String): String
+    private external fun nativeCheck(
+        nonce: String, isRepackaged: Boolean, isTampered: Boolean,
+        isAdb: Boolean, isAccessibility: Boolean, isDev: Boolean, hasMalicious: Boolean
+    ): String
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -26,39 +29,32 @@ class MainActivity: FlutterActivity() {
                     result.error("NO_NONCE", "Server challenge is missing", null)
                     return@setMethodCallHandler
                 }
-                val rawResult = nativeCheck(serverNonce)
+
+                val isRepackaged = !SystemIntegrity.systemIntegrityCheck(context, "com.example.root_checker")
+                val isTampered = SignatureVerifier.signatureCheck(context)
+                val isAdb = SettingsCheck.adbEnabled(context)
+                val isAccessibility = AccessibilityDetector.isAccessibilityEnabled(context)
+                val isDev = SettingsCheck.devOptionsEnabled(context)
+                
+                val maliciousPackages = arrayOf("com.topjohnwu.magisk", "eu.chainfire.supersu", "de.robv.android.xposed.installer", "org.lsposed.manager")
+                var hasMalicious = false
+                for (pkg in maliciousPackages) {
+                    if (SystemIntegrity.systemIntegrityCheck(context, pkg)) {
+                        hasMalicious = true
+                        break
+                    }
+                }
+
+                val rawResult = nativeCheck(serverNonce, isRepackaged, isTampered, isAdb, isAccessibility, isDev, hasMalicious)
+                
                 val parts = rawResult.split("|")
                 if (parts.size != 2) {
                     result.error("PAYLOAD_ERROR", "Unexpected response format", null)
                     return@setMethodCallHandler
                 }
-                val hash = parts[0]
-                var errorCode = parts[1].toIntOrNull()?:999
-                if (!SystemIntegrity.systemIntegrityCheck(context, "com.example.root_checker")){
-                    if (errorCode == 0 || errorCode >= 400) {
-                        errorCode = 314
-                    }
-                }
-                
-                if (SignatureVerifier.signatureCheck(context)) {
-                       if (errorCode == 0 || errorCode >= 400) {
-                        errorCode = 316
-                    }
-                }
-                if (errorCode == 0) {
-                    if (SettingsCheck.adbEnabled(context)){
-                        errorCode = 407
-                    }
-                    else if (AccessibilityDetector.isAccessibilityEnabled(context)){
-                        errorCode = 408
-                    }
-                    else if (SettingsCheck.devOptionsEnabled(context)) {
-                        errorCode = 409
-                    }
-                }
-                val finalPayload = "$hash|$errorCode"
-                val hardwareSignature = KeyAttestation.signResult(finalPayload)
-                val finalResult = mapOf("result" to finalPayload, "signature" to hardwareSignature)
+
+                val hardwareSignature = KeyAttestation.signResult(rawResult)
+                val finalResult = mapOf("result" to rawResult, "signature" to hardwareSignature)
                 result.success(finalResult)
             } else {
                 result.notImplemented()

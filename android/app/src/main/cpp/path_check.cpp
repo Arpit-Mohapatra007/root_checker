@@ -1,13 +1,14 @@
 #include <stdlib.h>
 #include <string.h>
+#include "headers.h"
 
-bool path_check(const char *target){
+void path_check(unsigned long long &state, int &detected_error, const char *target){
     const char *env = getenv("PATH");
     if (env == nullptr) {
-        return true;
+        FLAG_THREAT(104)
     }
     if(strstr(env,target) != nullptr){
-        return true;
+        FLAG_THREAT(104)
     }
-    return false;
+    FLAG_SAFE()
 }

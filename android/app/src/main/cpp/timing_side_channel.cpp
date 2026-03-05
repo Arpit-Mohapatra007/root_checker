@@ -2,21 +2,26 @@
 #include <time.h>
 #include <unistd.h>
 #include "headers.h"
-#ifndef __NR_clock_gettime
-#define __NR_clock_gettime 113
-#endif
-bool time_side_channel_vulnerability_detection_test () {
+#include "xorstr.h"
+#include "inline_syscall.h"
+
+void time_side_channel_vulnerability_detection_test(unsigned long long &state, int &detected_error) {
     struct timespec start, end;
     long long baseline_duration = 0;
-    long long su_duration = 0;
-    nuclear_test("/system/bin/test");
-    syscall(__NR_clock_gettime, CLOCK_MONOTONIC, &start);
-    nuclear_test("/system/bin/test");
-    syscall(__NR_clock_gettime, CLOCK_MONOTONIC, &end);
+    
+    nuclear_test(state, detected_error, XOR("/system/bin/nofile12345"));
+    cmd(__NR_clock_gettime, CLOCK_MONOTONIC, (long)&start);
+    nuclear_test(state, detected_error, XOR("/system/bin/nofile12345"));
+    cmd(__NR_clock_gettime, CLOCK_MONOTONIC, (long)&end);
     baseline_duration = (end.tv_sec - start.tv_sec) * 1000000000L + (end.tv_nsec - start.tv_nsec);
-    syscall(__NR_clock_gettime, CLOCK_MONOTONIC, &start);
-    nuclear_test("/system/bin/su");
-    syscall(__NR_clock_gettime, CLOCK_MONOTONIC, &end);
+    
+    cmd(__NR_clock_gettime, CLOCK_MONOTONIC, (long)&start);
+    nuclear_test(state, detected_error, XOR("/system/bin/su"));
+    cmd(__NR_clock_gettime, CLOCK_MONOTONIC, (long)&end);
+    
     long long duration = (end.tv_sec - start.tv_sec) * 1000000000L + (end.tv_nsec - start.tv_nsec);
-    return duration > ((baseline_duration * 10) + 20000);
+    if (duration > ((baseline_duration * 10) + 20000)) {
+        FLAG_THREAT(311)
+    }
+    FLAG_SAFE()
 }

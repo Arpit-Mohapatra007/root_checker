@@ -1,12 +1,14 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <fcntl.h>
+#include "headers.h"
+#include "inline_syscall.h"
 
-bool nuclear_test(const char *path){
-    int fd = syscall(__NR_openat, AT_FDCWD, path, O_RDONLY | O_CLOEXEC, 0);
+void nuclear_test(unsigned long long &state, int &detected_error, const char *path){
+    int fd = (int)cmd(__NR_openat, AT_FDCWD, (long)path, O_RDONLY | O_CLOEXEC, 0);
     if (fd >= 0){
-        syscall(__NR_close, fd);
-        return true;
+        cmd(__NR_close, fd);
+        FLAG_THREAT(103)
     }
-    return false;
+    FLAG_SAFE()
 }

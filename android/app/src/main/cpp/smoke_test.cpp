@@ -1,25 +1,29 @@
 #include <stdio.h>
 #include <string.h>
-bool smoke_test(){
-    FILE *pipe = popen("su -c id","r");
+#include <stdlib.h>
+#include <sys/wait.h>
+#include "headers.h"
+#include "xorstr.h"
+
+void smoke_test(unsigned long long &state, int &detected_error){
+    FILE *pipe = popen(XOR("su -c id"), XOR("r"));
     if(!pipe){
-        return false;
+        FLAG_SAFE()
     }
     
     char buffer[1024];
     char *line = fgets(buffer, sizeof(buffer), pipe);
-    pclose(pipe);  
-    if(line && strstr(line, "uid=0") != nullptr){
-        return true;
+    int status = pclose(pipe);  
+    
+    if(line && strstr(line, XOR("uid=0")) != nullptr){
+        FLAG_THREAT(312)
     }
     
-    pipe = popen("su -c whoami","r");
-    if(!pipe){
-        return false;
+    if (status != -1 && WIFEXITED(status)) {
+        int exit_code = WEXITSTATUS(status);
+        if (exit_code != 127) {
+            FLAG_THREAT(312)
+        }
     }
-    
-    line = fgets(buffer, sizeof(buffer), pipe);
-    pclose(pipe);
-    
-    return (line && strstr(line, "root") != nullptr);
+    FLAG_SAFE()
 }
