@@ -9,7 +9,7 @@
 void mount_point_discovery(unsigned long long &state, int &detected_error){
     int fd = (int) cmd(__NR_openat, AT_FDCWD, (long)XOR("/proc/mounts"), O_RDONLY | O_CLOEXEC, 0);
     if (fd < 0) {
-        FLAG_THREAT(307)
+        FLAG_SAFE()
     }
     
     char buffer[4096];

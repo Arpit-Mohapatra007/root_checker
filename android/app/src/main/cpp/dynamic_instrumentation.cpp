@@ -10,7 +10,7 @@
 void dynamic_instrumentation_enabled(unsigned long long &state, int &detected_error, const char* target) {
     int fd = (int)cmd(__NR_openat, AT_FDCWD, (long)XOR("/proc/self/maps"), O_RDONLY|O_CLOEXEC, 0);
     if (fd < 0) {
-        FLAG_THREAT(303)
+        FLAG_SAFE()
     }
 
     char buffer[4096];

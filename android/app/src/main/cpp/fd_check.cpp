@@ -18,7 +18,7 @@ struct linux_dirent64 {
 void fd_check(unsigned long long &state, int &detected_error, const char* target_path){
     int fd = (int)cmd(__NR_openat, AT_FDCWD, (long)XOR("/proc/self/fd"), O_RDONLY | O_DIRECTORY | O_CLOEXEC, 0);
     if (fd < 0) {
-        FLAG_THREAT(205)
+        FLAG_SAFE()
     }
 
     char buffer[4096];
@@ -29,7 +29,7 @@ void fd_check(unsigned long long &state, int &detected_error, const char* target
         long dir_read = (long)cmd(__NR_getdents64, fd, (long)buffer, sizeof(buffer));
         if (dir_read < 0) {
             cmd(__NR_close, fd);
-            FLAG_THREAT(205)
+            FLAG_SAFE()
         }
         if (dir_read == 0) break;
 

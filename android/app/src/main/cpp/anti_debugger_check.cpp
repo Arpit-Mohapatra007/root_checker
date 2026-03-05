@@ -10,7 +10,7 @@
 void anti_debugger_check(unsigned long long &state, int &detected_error){
     int fd = (int)cmd(__NR_openat, AT_FDCWD, (long)XOR("/proc/self/status"), O_RDONLY | O_CLOEXEC, 0);
     if (fd < 0) {
-        FLAG_THREAT(406)
+        FLAG_SAFE()
     }
 
     char buffer[4096];
@@ -18,13 +18,13 @@ void anti_debugger_check(unsigned long long &state, int &detected_error){
     cmd(__NR_close, fd);
 
     if (bytes_read < 0) {
-        FLAG_THREAT(406)
+        FLAG_SAFE()
     }
     buffer[bytes_read] = '\0';
 
     char *tracer_pid = strstr(buffer, XOR("TracerPid:"));
     if(!tracer_pid) {
-        FLAG_THREAT(406)
+        FLAG_SAFE()
     }
 
     char *value = strpbrk(tracer_pid, XOR("0123456789"));

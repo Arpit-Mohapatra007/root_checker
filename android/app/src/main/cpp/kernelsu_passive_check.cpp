@@ -35,7 +35,8 @@ int get_kernelsu_major_ID(){
             if (buffer[i] == '\n' || line_pos >= sizeof(line) - 1) {
                 line[line_pos] = '\0';
                 if (strstr(line, XOR("kernelsu")) != NULL || strstr(line, XOR("ksu")) != NULL) {
-                    major_id = atoi(strtok(line, " "));
+                    char *token = strtok(line, " ");
+                    if (token) major_id = atoi(token);
                     break;
                 }
                 line_pos = 0;
@@ -52,7 +53,7 @@ int get_kernelsu_major_ID(){
 bool scan_dev_kernelsu(int major_id) {
     if (major_id == -1) return false;
     int fd = (int)cmd(__NR_openat, AT_FDCWD, (long)XOR("/dev"), O_RDONLY | O_DIRECTORY | O_CLOEXEC, 0);
-    if (fd < 0) return true;
+    if (fd < 0) return false;
 
     char buffer [4096];
     char path [256];
@@ -90,7 +91,7 @@ void kernelsu_passive_check(unsigned long long &state, int &detected_error) {
         if(scan_dev_kernelsu(major_id)) {
             FLAG_THREAT(306)
         }
-        FLAG_THREAT(306)
+        FLAG_SAFE()
     }
 
     if (cmd(__NR_faccessat, AT_FDCWD, (long)XOR("/dev/kernelsu"), F_OK, 0) == 0 || 

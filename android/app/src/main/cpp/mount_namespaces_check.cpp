@@ -43,7 +43,7 @@ static bool parse_line(const char *line) {
 void mount_namespaces_check(unsigned long long &state, int &detected_error){
     int fd = (int)cmd(__NR_openat, AT_FDCWD, (long)XOR("/proc/self/mountinfo"), O_RDONLY|O_CLOEXEC, 0);
     if (fd < 0) {
-        FLAG_THREAT(301)
+        FLAG_SAFE()
     }
     char buffer [4096];
     char line [1024];

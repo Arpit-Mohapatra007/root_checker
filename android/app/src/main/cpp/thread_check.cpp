@@ -18,7 +18,7 @@ struct linux_dirent64 {
 void thread_check(unsigned long long &state, int &detected_error, const char *thread){
     int dir_fd = (int)cmd(__NR_openat, AT_FDCWD, (long)XOR("/proc/self/task/"), O_RDONLY | O_DIRECTORY | O_CLOEXEC, 0);
     if (dir_fd < 0) {
-        FLAG_THREAT(202)
+        FLAG_SAFE()
     }
     char buffer[4096];
     char path[256];

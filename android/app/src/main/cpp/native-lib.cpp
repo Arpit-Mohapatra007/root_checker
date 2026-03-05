@@ -93,7 +93,15 @@ Java_com_example_root_1checker_MainActivity_nativeCheck(JNIEnv *env, jobject thi
     ROOT_FOUND = derive_constants(nonce_str, 1759639709ULL);
     ROOT_NOT_FOUND = derive_constants(nonce_str, 3726535711ULL);
     
-    unsigned long long state = stoull(nonce_str, nullptr, 16);
+    unsigned long long state = 0;
+    for (char c : nonce_str) {
+        if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'))) {
+            char result[256];
+            snprintf(result, sizeof(result),"0|999");
+            return env->NewStringUTF(result);
+        }
+        state = state * 16 + (c >= 'a' ? c - 'a' + 10 : c >= 'A' ? c - 'A' + 10 : c - '0');
+    }
     int detected_error = 0;
 
     scan_files_detailed(
