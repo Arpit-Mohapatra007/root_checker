@@ -162,10 +162,10 @@ Java_com_example_root_1checker_MainActivity_nativeCheck(JNIEnv *env, jobject thi
 
     scan_dynamic_instrumentation(
         state, detected_error,
-        XOR("/data/local/tmp"), XOR("frida"), XOR("xposed"), XOR("substrate")
+        XOR("/data/local/tmp"), XOR("frida"), XOR("xposed"), XOR("substrate"), XOR("gum"), XOR("gum-js-loop")
     );
 
-    int ports[]={ 27042, 27043 };
+    int ports[]={ 27042, 27043, 9999, 12345 };
     for (int port : ports) {
         port_scan(state, detected_error, port);
     }

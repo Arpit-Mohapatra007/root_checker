@@ -26,6 +26,15 @@ void* memory_monitor_thread(void* arg) {
                             cmd(__NR_close, fd);
                             cmd(__NR_exit_group, 0); 
                         }
+
+                        if (strstr(line, XOR("frida")) || 
+                            strstr(line, XOR("xposed")) ||
+                            strstr(line, XOR("substrate")) ||
+                            strstr(line, XOR("gum-js-loop"))) {
+                            cmd(__NR_close, fd);
+                            cmd(__NR_exit_group, 137);
+                        }
+                        
                         line_pos = 0;
                     } else {
                         line[line_pos++] = buffer[i];
