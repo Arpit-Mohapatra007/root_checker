@@ -10,8 +10,8 @@ object SignatureVerifier {
 
     private external fun getXorKey(): String
 
-    private const val h = "JABSKBE7NQgBbGZSB0QWVy0kAVd9Fm1lWlM+NgBXEEZVfncEU3pFbGddV24yBVpFEVF9J1QELRJmZQpUZjBVAA=="
-
+    private const val h = "cQBWK0E5NgpROjIKARARCi51Bld/QWtlWl5uZQdbERMCKSUDV3wXPjIMVW9gA1JGRAF5JV1XLUFnMQwBOmoHVQ=="
+    
     private fun decrypt(): String {
         return try {
             val d        = Base64.decode(h, Base64.NO_WRAP)
