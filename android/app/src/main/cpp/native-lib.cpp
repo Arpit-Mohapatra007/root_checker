@@ -5,8 +5,10 @@
 #include <initializer_list>
 #include "headers.h"
 #include "xorstr.h"
-
+#define JNI_METHOD __attribute__((visibility("default"))) extern "C" JNIEXPORT 
 using namespace std;
+
+
 
 uint64_t derive_constants(const string& nonce, uint64_t index){
     uint64_t hash = 14695981039346656037ULL;
@@ -28,7 +30,21 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved) {
     return JNI_VERSION_1_6;
 }
 
-#define JNI_METHOD __attribute__((visibility("default"))) extern "C" JNIEXPORT 
+JNI_METHOD jstring JNICALL
+Java_com_example_root_1checker_PackageObfuscator_getPackageKey(JNIEnv *env, jclass) {
+    return env->NewStringUTF(XOR("AegIs_Pkg_S3cur3K"));
+}
+
+JNI_METHOD jstring JNICALL
+Java_com_example_root_1checker_UrlObfuscator_getUrlKey(JNIEnv *env, jclass) {
+    return env->NewStringUTF(XOR("AegIs_Url_S3cur3K"));
+}
+
+JNI_METHOD jstring JNICALL
+Java_com_example_root_1checker_SignatureVerifier_getXorKey(JNIEnv *env, jclass) {
+    return env->NewStringUTF(XOR("AegIs_Sig_S3cur3K"));
+}
+
 uint64_t ROOT_FOUND = 0;
 uint64_t ROOT_NOT_FOUND = 0;
 

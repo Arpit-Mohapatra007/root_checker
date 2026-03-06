@@ -7,60 +7,52 @@ import android.util.Base64
 import java.security.MessageDigest
 
 object SignatureVerifier {
-    private const val h = "ZSxQKh8IMgRpLBR4LC0QHxZ/AFtxC1llDgt8W2VVVlVkLx0hWGUTFSsHAEgDe3ltDxNcQGhhU3Z0QycuJUNgVA=="
-    private const val k = BuildConfig.XOR_KEY
-    
+
+    private external fun getXorKey(): String
+
+    private const val h = "JABSKBE7NQgBbGZSB0QWVy0kAVd9Fm1lWlM+NgBXEEZVfncEU3pFbGddV24yBVpFEVF9J1QELRJmZQpUZjBVAA=="
+
     private fun decrypt(): String {
         return try {
-            val d = Base64.decode(h, Base64.NO_WRAP)
-            val key = k.toByteArray()
-            val decrypted = ByteArray(d.size)
-            for (i in d.indices) {
-                decrypted[i] = (d[i].toInt() xor key[i % key.size].toInt()).toByte()
+            val d        = Base64.decode(h, Base64.NO_WRAP)
+            val keyBytes = getXorKey().toByteArray()
+            val result   = ByteArray(d.size) { i ->
+                (d[i].toInt() xor keyBytes[i % keyBytes.size].toInt()).toByte()
             }
-            String(decrypted)
+            String(result)
         } catch (e: Exception) {
             ""
         }
     }
 
     @JvmStatic
-    @Suppress("DEPRECATION") 
+    @Suppress("DEPRECATION")
     fun signatureCheck(context: Context): Boolean {
         try {
             val packageManager = context.packageManager
-            val packageName = context.packageName
+            val packageName    = context.packageName
             val signatures: Array<out android.content.pm.Signature>?
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                val flags = PackageManager.GET_SIGNING_CERTIFICATES
-                val packageInfo = packageManager.getPackageInfo(packageName, flags)
-                val signingInfo = packageInfo.signingInfo
-                
-                if (signingInfo == null) return true 
-                
+                val packageInfo = packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES)
+                val signingInfo = packageInfo.signingInfo ?: return true
                 signatures = if (signingInfo.hasMultipleSigners()) {
                     signingInfo.apkContentsSigners
                 } else {
                     signingInfo.signingCertificateHistory
                 }
             } else {
-                val flags = PackageManager.GET_SIGNATURES
-                val packageInfo = packageManager.getPackageInfo(packageName, flags)
+                val packageInfo = packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES)
                 signatures = packageInfo.signatures
             }
 
-            if (signatures.isNullOrEmpty()) {
-                return true 
-            }
+            if (signatures.isNullOrEmpty()) return true
 
-            val md = MessageDigest.getInstance("SHA-256")
-            val currentHash = md.digest(signatures[0].toByteArray())
+            val currentHash = MessageDigest.getInstance("SHA-256")
+                .digest(signatures[0].toByteArray())
                 .joinToString("") { "%02x".format(it) }
 
-            val validHash = decrypt()
-            
-            return !validHash.equals(currentHash, ignoreCase = true)
+            return !decrypt().equals(currentHash, ignoreCase = true)
 
         } catch (e: Exception) {
             return true

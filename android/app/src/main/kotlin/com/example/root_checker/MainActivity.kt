@@ -7,6 +7,7 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "com.example.root_checker/security"
+    private val URL_CHANNEL = "com.example.root_checker/url"
 
     companion object {
         init {
@@ -22,6 +23,15 @@ class MainActivity: FlutterActivity() {
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, URL_CHANNEL).setMethodCallHandler { call, result ->
+            if (call.method == "getUrl") {
+                val url = UrlObfuscator.getServerUrl()
+                result.success(url)
+            } else {
+                result.notImplemented()
+            }
+        }
+        
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             if (call.method == "checkRoot") {
                 val serverNonce = call.argument<String>("nonce") ?: ""
@@ -36,7 +46,7 @@ class MainActivity: FlutterActivity() {
                 val isAccessibility = AccessibilityDetector.isAccessibilityEnabled(context)
                 val isDev = SettingsCheck.devOptionsEnabled(context)
                 
-                val maliciousPackages = arrayOf("com.topjohnwu.magisk", "eu.chainfire.supersu", "de.robv.android.xposed.installer", "org.lsposed.manager")
+                val maliciousPackages = PackageObfuscator.getPackages()
                 var hasMalicious = false
                 for (pkg in maliciousPackages) {
                     if (SystemIntegrity.systemIntegrityCheck(context, pkg)) {

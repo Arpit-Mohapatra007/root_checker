@@ -110,6 +110,17 @@ class _SecurityDashboardState extends State<SecurityDashboard> {
     });
   }
 
+  static const urlChannel = MethodChannel('com.example.root_checker/url');
+
+  Future<String> _getServerUrl() async {
+    try {
+      final String url = await urlChannel.invokeMethod('getUrl');
+      return url;
+    } catch (e) {
+      return "";
+    }
+  }
+
   Future<void> _runSecurityScan() async {
     setState(() {
       _isScanning = true;
@@ -118,7 +129,13 @@ class _SecurityDashboardState extends State<SecurityDashboard> {
       _statusColor = Colors.blueAccent;
     });
 
-    const String serverUrl = "https://root-checker-backend.onrender.com";
+    final String serverUrl = await _getServerUrl();
+    
+    if (serverUrl.isEmpty) {
+      _updateUI("Configuration Error", "Unable to initialize security network", Colors.grey, Icons.error);
+      return;
+    }
+
     final String deviceID = const Uuid().v4();
 
     String? blockedIssuer;
