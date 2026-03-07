@@ -6,7 +6,7 @@ object UrlObfuscator {
 
     private external fun getUrlKey(): String
 
-    private const val encrypted = "KRETOQBlel0eMDxHThYaVigqABVkET42GQkxNx0MGwBWJSUAFWcQMDg="
+    private const val encrypted = "X0FBR0R5H2lBWl1BGlosVVReUEUaIVElWFBcURlWKkJSW1FSRW1TKV4="
 
     fun getServerUrl(): String {
         return try {

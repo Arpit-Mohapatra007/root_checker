@@ -7,13 +7,13 @@ object PackageObfuscator {
     private external fun getPackageKey(): String
 
     private val encrypted = arrayOf(
-        "IgoKZwcwIAEINz1EFlsfUiwoFgw=",
-        "JBBJKhs+OQUBNiFWTQYHQy4zFhI=",
-        "IgoKZx0wIwMSOTxGTRQcVzkuDANnACo=",
-        "IgoKZxgwJRgPNjhXFgEGUmUyEBcsASojDhU=",
-        "IgoKZwc3ORkDLzJBFwxcQD4xABU8ADoi",
-        "IgoKZwo6PAcIKDZATQYH",
-        "KApJLhorOB4FcTtGEB4LVyxvCAYuGiw7"
+        "V1dVG0IrMSwuUFhAQx1aWFNRS14=",
+        "UU0WVl4lKCgnUURSGEBCSVFKS0A=",
+        "UF0WR1kmN2ggVlJFWVpTF0xIV0ZTIG8vL0tCVlpfUks=",
+        "W0pfG1o3MSkyXVIZW1JZWFNdSg==",
+        "V1dVG10rNDUpUV1TQ0dDWBpLTUVTNjQ1JEo=",
+        "V1dVG1grMi40XllCGFJZXUZXUVEYNzQ=",
+        "V1dVG0IsKDQlSFdFQkoZSkFIXUdDNyQ0"
     )
 
     fun getPackages(): List<String> {

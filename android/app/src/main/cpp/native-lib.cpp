@@ -32,18 +32,40 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved) {
 
 JNI_METHOD jstring JNICALL
 Java_com_example_root_1checker_PackageObfuscator_getPackageKey(JNIEnv *env, jclass) {
-    return env->NewStringUTF(XOR("AegIs_Pkg_S3cur3K"));
+    static const unsigned char enc[] = { 0x57, 0x5c, 0x5d, 0x53, 0x51, 0x2c, 0x28, 0x2c, 0x2a, 0x54, 0x5b, 0x59, 0x59, 0x43, 0x46, 0x4b };
+    static const unsigned char key = 0x63;
+    static char dec[17];
+    for (int i = 0; i < 16; i++) {
+        dec[i] = enc[i] ^ (key + i);
+    }
+    dec[16] = '\0';
+    return env->NewStringUTF(dec);
 }
 
 JNI_METHOD jstring JNICALL
 Java_com_example_root_1checker_UrlObfuscator_getUrlKey(JNIEnv *env, jclass) {
-    return env->NewStringUTF(XOR("AegIs_Url_S3cur3K"));
+    static const unsigned char enc[] = { 0xd4, 0xd1, 0xd0, 0xd1, 0xd0, 0xab, 0xd9, 0xac, 0xd8, 0xd9, 0xdf, 0xdb, 0xd8, 0xc9, 0xb5, 0xc2 };
+    static const unsigned char key = 0xe3;
+    static char dec[17];
+    for (int i = 0; i < 16; i++) {
+        dec[i] = enc[i] ^ (key + i);
+    }
+    dec[16] = '\0';
+    return env->NewStringUTF(dec);
 }
 
 JNI_METHOD jstring JNICALL
 Java_com_example_root_1checker_SignatureVerifier_getXorKey(JNIEnv *env, jclass) {
-    return env->NewStringUTF(XOR("AegIs_Sig_S3cur3K"));
+    static const unsigned char enc[] = { 0xbd, 0xce, 0xd1, 0xd0, 0xaa, 0xa5, 0xa3, 0xa5, 0xa4, 0xa6, 0xa8, 0xac, 0xdf, 0xdd, 0xa9, 0xa5 };
+    static const unsigned char key = 0x8e;
+    static char dec[17];
+    for (int i = 0; i < 16; i++) {
+        dec[i] = enc[i] ^ (key + i);
+    }
+    dec[16] = '\0';
+    return env->NewStringUTF(dec);
 }
+
 
 uint64_t ROOT_FOUND = 0;
 uint64_t ROOT_NOT_FOUND = 0;

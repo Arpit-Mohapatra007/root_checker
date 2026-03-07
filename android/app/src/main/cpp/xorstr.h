@@ -1,36 +1,28 @@
 #ifndef XORSTR_H
 #define XORSTR_H
 
-#include <array>
-#include <stddef.h>
+#define XORSTR_SEED ((__TIME__[7] - '0') * 1  + (__TIME__[6] - '0') * 10  + \
+                     (__TIME__[4] - '0') * 60 + (__TIME__[3] - '0') * 600 + \
+                     (__TIME__[1] - '0') * 3600 + (__TIME__[0] - '0') * 36000)
 
-constexpr unsigned long long int XorSeed(int index, int seed) {
-    return (static_cast<unsigned long long int>(seed) ^ index) * 0x7FEB352D;
-}
+#define XOR(str) ([]() noexcept -> const char* { \
+    constexpr auto len = sizeof(str) / sizeof(str[0]); \
+    constexpr auto key = static_cast<unsigned char>(XORSTR_SEED + __LINE__); \
+    static char encrypted[len]; \
+    static bool init = false; \
+    if (!init) { \
+        for (size_t i = 0; i < len - 1; ++i) { \
+            encrypted[i] = str[i] ^ (key + static_cast<unsigned char>(i)); \
+        } \
+        encrypted[len - 1] = '\0'; \
+        init = true; \
+    } \
+    static thread_local char decrypted[len]; \
+    for (size_t i = 0; i < len - 1; ++i) { \
+        decrypted[i] = encrypted[i] ^ (key + static_cast<unsigned char>(i)); \
+    } \
+    decrypted[len - 1] = '\0'; \
+    return decrypted; \
+}())
 
-template <typename T, size_t N, int Seed>
-struct XorString {
-    std::array<T, N> encrypted_buffer;
-
-    constexpr XorString(const T (&str)[N]) : encrypted_buffer{} {
-        for (size_t i = 0; i < N; ++i) {
-            encrypted_buffer[i] = str[i] ^ static_cast<T>(XorSeed(i, Seed) & 0xFF);
-        }
-    }
-
-   void decrypt(char (&out)[N]) const {
-        for (size_t i = 0; i < N; ++i) {
-            out[i] = encrypted_buffer[i] ^ static_cast<T>(XorSeed(i, Seed) & 0xFF);
-        }
-    }
-};
-
-#define XOR(str) ([&]() { \
-    constexpr size_t N = sizeof(str); \
-    static constexpr auto xor_str = XorString<char, N, __LINE__ + 0x55>(str); \
-    struct Buf { char data[N]; } buf; \
-    xor_str.decrypt(buf.data); \
-    return buf; \
-}().data)
-
-#endif
+#endif 
